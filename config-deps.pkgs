@@ -1,0 +1,71 @@
+# This is the full set of packages that can be installed.  If you are sure that you
+# have some of these dependencies already, you can comment them out here.  Note that
+# packages which include libraries we link against (cfitsio, fftw, suitesparse, etc)
+# must be ABI compatible with our serial compilers that we are using and ideally should
+# be compiled with the same serial compilers used with TOAST.
+#
+# Python 3.  Choose either an existing python3 (>= 3.4) which supports creating
+# a virtualenv, or choose to install a python3 conda stack.
+python:virtualenv
+#python:conda nomkl
+#
+# Autotools.  If you already have recent versions installed with your OS
+# package manager, then comment these out.
+m4
+libtool
+autoconf
+automake
+#
+# CMake.
+cmake
+#
+# Install MPICH.  Comment out if you are using your own MPI installation.
+# The MPI you use must be compatible with your serial compilers.
+mpich
+#
+# Install mpi4py.  This will use the MPI compilers specified in your config.
+mpi4py
+#
+# Install CFITSIO.
+cfitsio
+#
+# Install OpenBLAS.  Comment out if you are using MKL with the Intel compilers
+# or some other vendor BLAS / LAPACK solution.
+openblas
+#
+# Install FFTW3.
+fftw
+#
+# Install HDF5 (serial version).
+hdf5
+#
+# Install h5py (using our HDF5).
+h5py
+#
+# Install healpy
+healpy
+#
+# Install quaternionarray
+qarray
+#
+# Install aatm.  Needed for some features of atmosphere simulations.
+aatm
+#
+# Install suitesparse
+suitesparse
+#
+# Install libconviqt.  4-PI a_lm space beam convolution.
+conviqt
+#
+# Install libsharp.  Distributed harmonic transforms.
+libsharp
+#
+# Install libmadam.  Destriping map-maker.
+madam
+#
+# Install TIDAS.  HDF5-based timestream data format.
+tidas
+#
+# Install PySM.  Python Sky Model.
+pysm
+#
