@@ -97,7 +97,7 @@ LDFLAGS = -lpthread -fopenmp
 CROSS =
 
 # Parallel builds
-MAKEJ = 4
+MAKEJ = 2
 
 # Python version to use.  If you are using a default python3, put the version
 # here.  Otherwise, this version will be used to create a virtualenv or to

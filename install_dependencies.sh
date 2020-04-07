@@ -17,6 +17,12 @@ usage () {
 prefix=$1
 if [ "x${prefix}" = "x" ]; then
     usage
+    exit 1
+fi
+
+if [ -d "${prefix}" ]; then
+    echo "Install prefix \"${prefix}\" already exists."
+    exit 1
 fi
 
 # Directory containing this script
@@ -38,8 +44,8 @@ else
     git clone https://github.com/hpc4cmb/cmbenv.git
     cd cmbenv
 fi
-cp "${scriptdir}/config-deps" ./config/bench
-cp "${scriptdir}/config-deps.pkgs" ./config/bench.pkgs
+cp "${scriptdir}/config-deps" ./configs/bench
+cp "${scriptdir}/config-deps.pkgs" ./configs/bench.pkgs
 ./cmbenv -c bench -p "${prefix}"
 mkdir -p build
 cd build
