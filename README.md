@@ -72,27 +72,34 @@ can be configured with the `config-deps` file, which contains variables for sett
 compilers and other system values, and for overriding things like a vendor BLAS / LAPACK
 install.  The `config-deps.pkgs` file contains details about which packages should be
 built by cmbenv.  This defaults to creating a python3 virtualenv and compiling all
-dependencies (including MPICH).  You should edit the config-deps and config-deps.pkgs
-files to match your test system.
+dependencies (including MPICH).  You should edit the `config-deps` and
+`config-deps.pkgs` files to match your test system.
 
 If you already have some dependencies installed and you are absolutely sure that
 everything is ABI compatible, then you can comment out those package lines in the
-config-deps.pkgs file.  After editing these files, install the dependencies to a
-top-level prefix with: ```bash ./install_dependencies.sh /path/to/prefix ```
+`config-deps.pkgs` file.  After editing these files, install the dependencies to a
+top-level prefix with:
+
+```bash
+./install_dependencies.sh /path/to/prefix
+```
 
 Then load this software stack before installing TOAST with:
+
 ```bash
 source /path/to/prefix/cmbenv_init.sh
 source cmbenv
 ```
 
-Now install TOAST using the provided script.  This parses the same `config-deps` file you made to get options which are passed to CMake:
+Now install TOAST using the provided script.  This parses the same `config-deps` file
+you made to get options which are passed to CMake:
 
 ```bash
 ./install_toast.sh
 ```
 
-After this, you can always load the cmbenv environment above and all tools (including TOAST) will be available.
+After this, you can always load the cmbenv environment above and all tools (including
+TOAST) will be available.
 
 ### Manually Installing Dependencies
 
