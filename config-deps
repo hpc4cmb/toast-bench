@@ -39,7 +39,7 @@ BUILD_CXX = g++
 #
 # These are the settings for the case where we are building MPICH as one of the
 # cmbenv packages.  To use an external MPI, fill the variables here and comment out
-# the "mpich" line in deps-bench.pkgs.
+# the "mpich" line in config-deps.pkgs.
 MPICC = mpicc
 MPICXX = mpicxx
 MPIFC = mpifort
