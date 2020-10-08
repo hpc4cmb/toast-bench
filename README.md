@@ -12,9 +12,143 @@ https://github.com/hpc4cmb/toast
 
 The required dependencies include several compiled libraries as well as some standard
 python packages.  This [toast-bench](https://github.com/hpc4cmb/toast-bench) git repo
-includes scripts to install TOAST and its dependencies from scratch given some minimal
-external requirements (serial compilers).  Before attempting to install TOAST manually,
-please read and understand all the notes below.
+documents running TOAST benchmarks using a variety of installation methods, from
+pre-built binaries to running scripts that build all dependencies with custom compiler
+options.
+
+## Running the Benchmarks
+
+After installing TOAST (see below), you should have the `toast_benchmark.py` script in
+your executable search path.  Although this script will run without MPI, you should have
+the `mpi4py` package installed in order to do any useful tests.  The
+`toast_benchmark.py` script will automatically choose one of several pre-set workflow
+sizes based on the size and configuration of the job you run.  You can see the small
+number of commandline options with:
+
+```
+toast_benchmark.py --help
+
+usage: toast_benchmark.py [-h] [--node_mem_gb NODE_MEM_GB] [--dry_run DRY_RUN]
+
+Run a TOAST workflow scaled appropriately to the MPI communicator size and available memory.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --node_mem_gb NODE_MEM_GB
+                        Use this much memory per node in GB
+  --dry_run DRY_RUN     Comma-separated total_procs,node_procs to simulate.
+```
+
+The `--node_mem_gb` option is used to override the amount of RAM to use on each node, in
+case the amount detected by `psutil` gives incorrect results.  The `--dry_run` option
+will simulate the job setup given the total number of MPI processes and the number of
+processes per node.  These are specified as two numbers specified by a comma.  
+
+### Dry Run Tests
+
+Before launching real jobs, it is useful to test the job setup in dry-run mode.  You can
+do these tests serially.  The script will select the workflow size based on your
+commandline values to the `--dry_run` option and will create the job output directory,
+configuration log file, and some input data files.  So this is a way of checking that
+everything makes sense before submitting the actual job.  For example, to simulate the
+job setup for running 1024 MPI processes with 16 processes per node (so 64 nodes), on a
+system with 90GB of RAM per node, you can do:
+
+```
+toast_benchmark.py --node_mem_gb 90 --dry_run 1024,16
+
+TOAST INFO: TOAST version = 2.3.8.dev9
+TOAST INFO: Using a maximum of 4 threads per process
+TOAST INFO: Running with 1 processes at 2020-10-08 09:35:26.808623
+TOAST INFO: DRY RUN simulating 1024 total processes with 16 per node
+TOAST INFO: Minimum detected per-node memory available is 57.53 GB
+TOAST INFO: Setting per-node available memory to 90.00 GB as requested
+TOAST INFO: Job has 64 total nodes
+TOAST INFO: Examining 7 possible cases to run:
+TOAST INFO:   tiny    : requires 1 nodes for 16 MPI ranks and 90.0GB per node
+TOAST INFO:   xsmall  : requires 1 nodes for 16 MPI ranks and 90.0GB per node
+TOAST INFO:   small   : requires 1 nodes for 16 MPI ranks and 90.0GB per node
+TOAST INFO:   medium  : requires 5 nodes for 16 MPI ranks and 90.0GB per node
+TOAST INFO:   large   : requires 47 nodes for 16 MPI ranks and 90.0GB per node
+TOAST INFO:   xlarge  : requires 470 nodes for 16 MPI ranks and 90.0GB per node
+TOAST INFO:   heroic  : requires 4700 nodes for 16 MPI ranks and 90.0GB per node
+TOAST INFO: Selected case 'large'
+TOAST INFO: Using groups of 1 nodes
+TOAST INFO: Using 64 detectors for approximately 180 days
+TOAST INFO: Generating input schedule file toast_001024_grp-0016p-01n_20201008-09:35:26/inputs/schedule.txt:
+TOAST INFO: Adding patch "BICEP"
+TOAST INFO: Rectangular format
+TOAST INFO: Creating 'toast_001024_grp-0016p-01n_20201008-09:35:26/inputs'
+TOAST INFO: Global timer: toast_ground_schedule:  35.72 seconds (1 calls)
+TOAST INFO: Generating input map toast_001024_grp-0016p-01n_20201008-09:35:26/inputs/cmb.fits
+TOAST INFO: Exit from dry run
+```
+
+You can see that for this configuration, the script would choose the "large" workflow
+case.  The script actually goes through the process of creating an input sky signal map
+for the simulation and also some number of days of telescope observing schedules.  These
+are the same setup operations that would happen at the beginning of a real run.  You can
+also see the different node counts needed for each of the possible workflow tests
+assuming the same memory per node and processes per node that you specified.
+
+### Starting Small
+
+A good starting point is to begin with a single-node job.  Choose how many processes you
+will be using per node.  Things to consider:
+
+1.  Most of the parallelism in TOAST is process-level using MPI.  There is some limited use of OpenMP and there will soon be support for CUDA / OpenCL for some workflow modules.  However, running with more MPI ranks generally leads to better performance at the moment.
+
+2.  There is some additional memory overhead on each node, so running nodes "fully packed" with MPI processes may not be possible.  You should experiment with different numbers of MPI ranks per node.
+
+3.  Make sure to set `OMP_NUM_THREADS` appropriately so that the `(MPI ranks per node) X (OpenMP threads)` equals the total number of physical cores on each node.
+
+Here is an example running interactively on `cori.nersc.gov`, which uses the SLURM
+scheduler:
+
+```bash
+# 16 ranks per node, each with 4 threads.  
+# 4 cores left for OS use.
+# Depth is 16, due to 4 hyperthreads per core.
+export OMP_NUM_THREADS=4
+srun -C knl -q interactive -t 00:10:00 -N 1 -n 16 -c 16 \
+toast_benchmark.py
+```
+
+### Scaling Up
+
+After doing dry-run tests and running very small jobs you can increase the node count to
+support something like the small / medium workflow cases.  At this point you can test
+the effects of adjusting the number of MPI processes per node.  After you have found a
+configuration that seems the best, increase the node count again to run the larger
+cases.
+
+### Metrics
+
+At the end of the job a "Science Metric" is reported.  This is currently based on the
+total number of data samples processed and the node-seconds that were used.  There is an
+additional scale factor applied to reward the processing of larger data volumes, since
+this enables more detailed treatment of correlations in the data.  The metric is
+computed as:
+
+```
+Metric = (1.0e-6 * Total samples)^(Factor) / (Run seconds * Number of nodes)
+```
+
+Where the run time only includes the actual science calculations and not the
+serial job setup portion.  From this equation, we can see that "large" nodes would be
+preferred.  This Metric should be further divided by the "node watts" to obtain a
+relative measure of "Science per Watt".
+
+This benchmark script is testing a single TOAST workflow at different data volumes.
+There are hundreds of possible workflows, but we have tried to capture the relevant
+features in this one script.  For each TOAST release, there will be improvements to both
+the software and there may also be changes to the benchmark script to attempt to make
+the results more meaningful and realistic.
+
+This raises a critical reminder:  any benchmark results should be accompanied by the
+associated job log file, which includes information about the code version and
+parameters that were used.  **Benchmarks should only be compared for the same TOAST
+release**.
 
 ## Installation
 
@@ -201,23 +335,3 @@ And then:
 ```bash
 make -j 4 install
 ```
-
-## Running the Benchmarks
-
-The benchmark scripts are located within the TOAST package.  From your source checkout,
-go into the `examples` directory.  See the README there for more information.  Basically
-you download some data files:
-
-```bash
-./fetch_data.sh
-```
-
-And then generate some job directories with:
-
-```bash
-./generate.py
-```
-
-To add configurations for new systems, you can add their properties to the top of the
-`config.toml` file.  You will probably also need to make a template for the job
-submission script.  See the `template_nersc.slurm` and `template_shell.sh` examples.
