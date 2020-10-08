@@ -26,7 +26,7 @@ sizes based on the size and configuration of the job you run.  You can see the s
 number of commandline options with:
 
 ```
-toast_benchmark.py --help
+%>  toast_benchmark.py --help
 
 usage: toast_benchmark.py [-h] [--node_mem_gb NODE_MEM_GB] [--dry_run DRY_RUN]
 
@@ -55,7 +55,7 @@ job setup for running 1024 MPI processes with 16 processes per node (so 64 nodes
 system with 90GB of RAM per node, you can do:
 
 ```
-toast_benchmark.py --node_mem_gb 90 --dry_run 1024,16
+%>  toast_benchmark.py --node_mem_gb 90 --dry_run 1024,16
 
 TOAST INFO: TOAST version = 2.3.8.dev9
 TOAST INFO: Using a maximum of 4 threads per process
@@ -109,8 +109,8 @@ scheduler:
 # 16 ranks per node, each with 4 threads.  
 # 4 cores left for OS use.
 # Depth is 16, due to 4 hyperthreads per core.
-export OMP_NUM_THREADS=4
-srun -C knl -q interactive -t 00:10:00 -N 1 -n 16 -c 16 \
+%>  export OMP_NUM_THREADS=4
+%>  srun -C knl -q interactive -t 00:10:00 -N 1 -n 16 -c 16 \
 toast_benchmark.py
 ```
 
@@ -156,28 +156,109 @@ There are several ways to install TOAST.  Pre-built binary packages are availabl
 wheels and also through the conda-forge channel.  When running benchmarks on a new or
 unusual system, you may achieve better performance building TOAST and some or all of the
 dependencies from scratch.  However, it can be useful to run the tests with pre-built
-packages as a starting point for the performance testing.  To install with binary
-packages, see [General installation instructions
-here](https://toast-cmb.readthedocs.io/en/latest/install.html).
+packages as a starting point for the performance testing and as a point of comparison.
 
-The rest of this section covers installation of TOAST and its dependencies from source.
-The dependencies required by TOAST are:
+### Pre-built Binaries
+
+A full discussion of TOAST installation [is in the official documentation](https://toast-cmb.readthedocs.io/en/latest/install.html).  Here we provide a quick summary.  Make sure that you have a Python3 installation that is at least version 3.6.0:
+
+```bash
+%>  python3 --version
+Python 3.8.2
+```
+
+#### Using Pip
+
+For installation of packages from PyPI (the most general method), first create a new
+"virtualenv" that will act as a sandbox environment for our installation.  You can call
+this whatever you like, but for this example we will make a location called `toast` in
+our home directory:
+
+```bash
+%>  python3 -m venv ${HOME}/toast
+```
+
+Now activate this environment:
+
+```bash
+%>  source ${HOME}/cmb/bin/activate
+```
+
+Within this virtualenv, update pip to the latest version.  This is needed in order to
+install more recent wheels from PyPI:
+
+```bash
+%>  python3 -m pip install --upgrade pip
+```
+
+Next, use pip to install toast and its requirements (note that the name of the package
+is "toast-cmb" on PyPI):
+
+```bash
+%>  python3 -m pip install toast-cmb
+```
+
+Although TOAST does not require MPI, it is needed for any meaningful benchmarking work.
+We will install the `mpi4py` package, but first need to make sure that we have a working
+MPI C compiler.  You can [read about install options for mpi4py
+here](https://mpi4py.readthedocs.io/en/stable/install.html).  If you have a generic MPI
+compiler wrapper (e.g. mpicc, etc) then you can just do:
+
+```bash
+%>  python3 -m pip install mpi4py
+```
+
+It is always a good idea to run the TOAST unit tests with your new installation
+(substitute the appropriate MPI job launch command here):
+
+```bash
+%>  mpirun -np 2 python3 -c 'import toast.tests; toast.tests.run()'
+```
+
+#### Using Conda
+
+If you are already using the `conda` python package manager, then you may find it easier
+to install TOAST from the packages in the `conda-forge` package repository.  Begin by
+creating a new conda environment:
+
+```bash
+%>  conda create -y -n toast
+```
+
+Now activate this environment and install TOAST:
+
+```bash
+%>  conda activate toast
+%>  conda install toast
+```
+
+For meaningful benchmarking, we also need to install `mpi4py`:
+
+```bash
+%>  conda install mpi4py
+```
+
+It is always a good idea to run the TOAST unit tests with your new installation
+(substitute the appropriate MPI job launch command here):
+
+```bash
+%>  mpirun -np 2 python3 -c 'import toast.tests; toast.tests.run()'
+```
+
+### Manual Installation
+
+Before trying to build TOAST from source for running these benchmarks, you should first
+make sure that you have installed all the necessary dependencies:
 
 * A C++11 compiler
 * A BLAS / LAPACK installation
 * [FFTW](http://fftw.org/) libraries
 * [CMake](https://cmake.org/) (>= 3.10)
-* Python3 (>= 3.6)
-* Python packages:  numpy, scipy, astropy, healpy, h5py, ephem
-
-Additionally, some features of TOAST are only available if other packages are present:
-
-* MPI and mpi4py (for effective parallelism)
 * [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) (for atmosphere simulations)
 * [libaatm](https://github.com/hpc4cmb/libaatm) (for atmosphere simulations)
-* [PySM](https://github.com/healpy/pysm) (for astrophysical sky simulations)
-* [libconviqt](https://github.com/hpc4cmb/libconviqt) (for harmonic-space beam convolutions)
-* [libmadam](https://github.com/hpc4cmb/libmadam) (for traditional destriping / map-making)
+* Python3 (>= 3.6)
+* Python packages:  numpy, scipy, astropy, healpy, h5py, ephem
+* MPI and mpi4py (for effective parallelism)
 
 > **WARNING**:  TOAST has some compiled dependencies (LAPACK) which are
 > also used from Python (numpy / scipy uses LAPACK).  Your
@@ -193,21 +274,21 @@ Intel compiler and MKL | numpy with MKL | Broken, **UNLESS** both MKLs are compa
 GCC and system OpenBLAS | numpy with MKL | **Works**: different libraries are dl-opened by TOAST and numpy.
 Intel compiler and MKL | numpy with OpenBLAS | **Works**: different libraries are dl-opened by TOAST and numpy.
 
-### Installing Dependencies with "cmbenv"
+#### Dependencies:  Installing with `cmbenv`
 
 The [cmbenv](https://github.com/hpc4cmb/cmbenv) package is a set of scripts to build
 from source a variety of packages used in Cosmic Microwave Background (CMB) data
 analysis.  cmbenv can install a Python3 conda environment or it can use the default
 Python3 on the system to create a virtualenv for installing this software.
 
-This directory includes a script, `install_dependencies.sh` which will download the
-cmbenv package and use it to compile all of the TOAST dependencies.  This build process
-can be configured with the `config-deps` file, which contains variables for setting
-compilers and other system values, and for overriding things like a vendor BLAS / LAPACK
-install.  The `config-deps.pkgs` file contains details about which packages should be
-built by cmbenv.  This defaults to creating a python3 virtualenv and compiling all
-dependencies (including MPICH).  You should edit the `config-deps` and
-`config-deps.pkgs` files to match your test system.
+The top-level `toast-bench` directory includes a script, `install_dependencies.sh` which
+will download the cmbenv package and use it to compile all of the TOAST dependencies.
+This build process can be configured with the `config-deps` file, which contains
+variables for setting compilers and other system values, and for overriding things like
+a vendor BLAS / LAPACK install.  The `config-deps.pkgs` file contains details about
+which packages should be built by cmbenv.  This defaults to creating a python3
+virtualenv and compiling all dependencies (including MPICH).  You should edit the
+`config-deps` and `config-deps.pkgs` files to match your test system.
 
 If you already have some dependencies installed and you are absolutely sure that
 everything is ABI compatible, then you can comment out those package lines in the
@@ -215,27 +296,27 @@ everything is ABI compatible, then you can comment out those package lines in th
 top-level prefix with:
 
 ```bash
-./install_dependencies.sh /path/to/prefix
+%>  ./install_dependencies.sh /path/to/prefix
 ```
 
 Then load this software stack before installing TOAST with:
 
 ```bash
-source /path/to/prefix/cmbenv_init.sh
-source cmbenv
+%>  source /path/to/prefix/cmbenv_init.sh
+%>  source cmbenv
 ```
 
 Now install TOAST using the provided script.  This parses the same `config-deps` file
 you made to get options which are passed to CMake:
 
 ```bash
-./install_toast.sh
+%>  ./install_toast.sh
 ```
 
 After this, you can always load the cmbenv environment above and all tools (including
 TOAST) will be available.
 
-### Manually Installing Dependencies
+#### Dependencies:  Installing from Scratch
 
 If you just want to "override" specific dependencies with manually installed versions,
 you can comment out the package in the `config-deps.pkgs` file and use the cmbenv tools
@@ -244,76 +325,61 @@ mentioned above.
 There may be cases where you want to install everything manually.  In this case, you
 should ensure the following:
 
-- Your math libraries (LAPACK, FFTW, and SuiteSparse) are binary compatible with each
-- other and with your serial compilers.
+- Your math libraries (LAPACK, FFTW, and SuiteSparse) are binary compatible with each other and with your serial compilers.
 
-- Your Python3 installation is recent.  Versions 3.6-3.8 are regularly tested by our
-  continuous integration workflows.  If you are using a system Python3, create a
-  virtualenv for these benchmarks and activate it.  If you are using a conda-based
-  Python3 stack, create a new conda environment for these benchmarks and activate it.
+- Your Python3 installation is recent.  Versions 3.6-3.8 are regularly tested by our continuous integration workflows.  If you are using a system Python3, create a virtualenv for these benchmarks and activate it.  If you are using a conda-based Python3 stack, create a new conda environment for these benchmarks and activate it.
 
-- Some python packages ship with pre-built shared libraries.  When you install these
-  packages with pip or conda, these libraries will be placed in your virtualenv or conda
-  environment.  You must ensure that the directory containing these libraries is **not**
-  in the search path used by the linker (e.g. LD_LIBRARY_PATH).  Often these libraries
-  are incompatible with other system libraries and should only be loaded by the python
-  packages using them.
+- Some python packages ship with pre-built shared libraries.  When you install these packages with pip or conda, these libraries will be placed in your virtualenv or conda environment.  You must ensure that the directory containing these libraries is **not** in the search path used by the linker (e.g. LD_LIBRARY_PATH).  Often these libraries are incompatible with other system libraries and should only be loaded by the python packages using them.
 
-- When installing compiled dependencies, these libraries need to be visible to the
-  linker when linking the internal TOAST library.  Since these libraries need to be in
-  the linker search path, you should **not** install them directly to the virtualenv or
-  conda environment prefix you are using for python packages.  Install compiled
-  dependencies to another location which you can then put into PATH, LD_LIBRARY_PATH,
-  and PYTHONPATH.
+- When installing compiled dependencies, these libraries need to be visible to the linker when linking the internal TOAST library.  Since these libraries need to be in the linker search path, you should **not** install them directly to the virtualenv or conda environment prefix you are using for python packages.  Install compiled dependencies to another location which you can then put into PATH, LD_LIBRARY_PATH, and PYTHONPATH.
+
+> **WARNING**: conda installs its own version of a linker.  If you are using a conda
+> environment, check if the file `compiler_compat/ld` exists in the conda environment
+> prefix.  If so, remove it or rename it.
 
 Here is an overview of the steps for manually setting up a TOAST test environment.
 Since there will be several locations of installed software, I recommend creating a
 shell function / alias which adds everything to PATH, LD_LIBRARY_PATH, etc:
 
-1.  Select your serial compilers and any pre-existing versions of BLAS / LAPACK, FFTW,
-and SuiteSparse that you would like to use.  Ensure that these are loaded in your shell
-environment.
+1.  Select your serial compilers and any pre-existing versions of BLAS / LAPACK, FFTW, and SuiteSparse that you would like to use.  Ensure that these are loaded in your shell environment.
 
 2.  If using MPI, ensure that your MPI installation is loaded in your shell environment.
 
-3.  Determine what Python3 you will be using.  If you are using a system Python3, create
-a virtualenv for these benchmarks and activate it.  If you are using a conda-based
-Python3 stack, create a new conda environment for these benchmarks and activate it.
-**WARNING**: conda installs its own version of a linker.  If you are using a conda
-environment, check if the file `compiler_compat/ld` exists in the conda environment
-prefix.  If so, remove it or rename it.
+3.  Determine what Python3 you will be using.  If you are using a system Python3, create a virtualenv for these benchmarks and activate it.  If you are using a conda-based Python3 stack, create a new conda environment for these benchmarks and activate it.  See note above, and delete `compiler_compat/ld` if it exists in the conda environment.
 
-4.  Install the following python packages: `numpy`, `scipy`, `matplotlib`, `healpy`,
-`astropy`, `pysm3`, `h5py`, `ephem`, `cmake`.  If you are working with a virtualenv,
-install these packages with pip.  If using a conda environment, install these with
-conda.
+4.  Install the following python packages: `numpy`, `scipy`, `matplotlib`, `healpy`, `astropy`, `pysm3`, `h5py`, `ephem`, `cmake`.  If you are working with a virtualenv, install these packages with pip.  If using a conda environment, install these with conda.
 
-5.  Install the `mpi4py` package with pip (not conda).  Read the documentation of that
-package to see how to make sure it finds your intended MPI compiler.
+5.  Install the `mpi4py` package with pip (not conda).  Read the documentation of that package to see how to make sure it finds your intended MPI compiler.
 
-6.  Determine where you wish to install compiled dependencies (and TOAST).  Install
-compiled dependencies you do not already have:  [FFTW](http://fftw.org/),
-[SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html),
-[libaatm](https://github.com/hpc4cmb/libaatm), and optionally
-[libconviqt](https://github.com/hpc4cmb/libconviqt) and
-[libmadam](https://github.com/hpc4cmb/libmadam).
+6.  Determine where you wish to install any manually compiled dependencies (and TOAST).  Install compiled dependencies you do not already have:  [FFTW](http://fftw.org/), [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html), [libaatm](https://github.com/hpc4cmb/libaatm).
 
 Now we are ready to install TOAST to the location where we are placing our compiled
-packages and thing outside of our virtualenv / conda env.  Go into the source tree and
-make a build directory:
+packages and things outside of our virtualenv / conda env.  Assuming you installed the
+compiled packages in step (6) above to `/path/to/toast`, you need to export that install
+prefix into your environment:
+
+```bash
+%>  export PATH=/path/to/toast/bin:${PATH}
+%>  export CPATH=/path/to/toast/include:${CPATH}
+%>  export LD_LIBRARY_PATH=/path/to/toast/lib:${LD_LIBRARY_PATH}
+%>  export PYTHONPATH=/path/to/toast/lib/python3.x/site-packages:${PYTHONPATH}
+```
+
+Next go into the TOAST source tree and make a build directory:
 
 ```bash
 mkdir build
 cd build
 ```
 
-Now run cmake from here.  For example, pretend we are installing TOAST and all our
-compiled dependencies to `/path/to/benchmark_libs`.  And pretend we wanted to install
-TOAST on a Cray system at NERSC using the Intel compilers and building object code
-optimized for both the login nodes and the KNL compute nodes.  We could do this:
+Now run cmake from here.  For this example, we'll continue to use the hypothetical
+install prefix `/path/to/toast`.  Also assume we installed FFTW, libaatm, and
+SuiteSparse to this location.  Pretend we wanted to install TOAST on a Cray system at
+NERSC using the Intel compilers and building object code optimized for both the login
+nodes and the KNL compute nodes.  We could do this:
 
 ```bash
-PREFIX=/path/to/benchmark_libs cmake \
+PREFIX=/path/to/toast cmake \
     -DCMAKE_C_COMPILER="${CRAYPE_DIR}/bin/cc" \
     -DCMAKE_CXX_COMPILER="${CRAYPE_DIR}/bin/CC" \
     -DCMAKE_C_FLAGS="-O3 -g -fPIC -xcore-avx2 -axmic-avx512 -pthread" \
@@ -335,3 +401,7 @@ And then:
 ```bash
 make -j 4 install
 ```
+
+To use this TOAST install for benchmarking, you would first activate your virtualenv or
+conda environment, and then export your install prefix into your environment.  Running
+the unit tests are a good way to test the TOAST installation.
