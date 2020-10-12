@@ -141,9 +141,9 @@ relative measure of "Science per Watt".
 
 This benchmark script is testing a single TOAST workflow at different data volumes.
 There are hundreds of possible workflows, but we have tried to capture the relevant
-features in this one script.  For each TOAST release, there will be improvements to both
-the software and there may also be changes to the benchmark script to attempt to make
-the results more meaningful and realistic.
+features in this one script.  For each TOAST release, there will be improvements to the
+software and there may also be changes to the benchmark script to make the results more
+meaningful and realistic.
 
 This raises a critical reminder:  any benchmark results should be accompanied by the
 associated job log file, which includes information about the code version and
@@ -158,9 +158,12 @@ unusual system, you may achieve better performance building TOAST and some or al
 dependencies from scratch.  However, it can be useful to run the tests with pre-built
 packages as a starting point for the performance testing and as a point of comparison.
 
-### Pre-built Binaries
+### Installing Pre-built Binaries
 
-A full discussion of TOAST installation [is in the official documentation](https://toast-cmb.readthedocs.io/en/latest/install.html).  Here we provide a quick summary.  Make sure that you have a Python3 installation that is at least version 3.6.0:
+A full discussion of TOAST installation [is in the official
+documentation](https://toast-cmb.readthedocs.io/en/latest/install.html).  Here we
+provide a summary.  Make sure that you have a Python3 installation that is at least
+version 3.6.0:
 
 ```bash
 %>  python3 --version
@@ -181,7 +184,7 @@ our home directory:
 Now activate this environment:
 
 ```bash
-%>  source ${HOME}/cmb/bin/activate
+%>  source ${HOME}/toast/bin/activate
 ```
 
 Within this virtualenv, update pip to the latest version.  This is needed in order to
@@ -201,25 +204,65 @@ is "toast-cmb" on PyPI):
 Although TOAST does not require MPI, it is needed for any meaningful benchmarking work.
 We will install the `mpi4py` package, but first need to make sure that we have a working
 MPI C compiler.  You can [read about install options for mpi4py
-here](https://mpi4py.readthedocs.io/en/stable/install.html).  If you have a generic MPI
-compiler wrapper (e.g. mpicc, etc) then you can just do:
+here](https://mpi4py.readthedocs.io/en/stable/install.html).  For example, if your MPI
+compiler wrapper is called "`cc`", then you would do:
 
 ```bash
-%>  python3 -m pip install mpi4py
+# (Substitute the name of your MPI C compiler)
+%>  MPICC=cc python3 -m pip install --no-cache-dir mpi4py
 ```
 
-It is always a good idea to run the TOAST unit tests with your new installation
-(substitute the appropriate MPI job launch command here):
+It is always a good idea to run the TOAST unit tests with your new installation:
 
 ```bash
-%>  mpirun -np 2 python3 -c 'import toast.tests; toast.tests.run()'
+# Example:  generic Linux:
+%>  export OMP_NUM_THREADS=1
+%>  mpirun -np 4 python3 -c 'import toast.tests; toast.tests.run()'
+
+# Example:  on cori.nersc.gov with slurm:
+%>  export OMP_NUM_THREADS=4
+%>  srun -N 1 -n 4 -C haswell -t 00:30:00 python3 -c 'import toast.tests; toast.tests.run()'
 ```
 
 #### Using Conda
 
 If you are already using the `conda` python package manager, then you may find it easier
-to install TOAST from the packages in the `conda-forge` package repository.  Begin by
-creating a new conda environment:
+to install TOAST from the packages in the `conda-forge` package repository.  Before
+doing any conda operations (like creating an environment), you must make sure that conda
+has been initialized with the `conda init` command or by manually sourcing the shell
+snippet to do this.  **Simply having the `conda` command in your search path is not
+sufficient**.  For example, on the cori system at NERSC you would do:
+
+```bash
+# Load conda command into your path:
+module load python
+
+# Actually initialize conda:
+conda init
+```
+
+The `init` command adds a shell snippet to your `~/.bashrc`.  Now reload your shell
+resource file or log out and log back in.  Now we are ready to use the conda tool.
+
+> **NOTE**:  If you don't want to always load the conda software stack in your
+~/.bashrc, then you can create your own shell function which does the same thing.  For example, at NERSC, you could add this function to ~/.bashrc:
+
+```bash
+load_conda () {
+    module load python
+    conda_prefix=$(dirname $(dirname $(which conda)))
+    source "${conda_prefix}/etc/profile.d/conda.sh"
+}
+```
+
+Then from a fresh shell you can selectively do:
+
+```bash
+%>  load_conda
+```
+
+Only when you want to use this conda installation.  Now that our conda tool is
+initialized, we can install TOAST.  Begin by creating a new conda environment:
 
 ```bash
 %>  conda create -y -n toast
@@ -229,23 +272,42 @@ Now activate this environment and install TOAST:
 
 ```bash
 %>  conda activate toast
-%>  conda install toast
+%>  conda install -y -c conda-forge toast
 ```
 
-For meaningful benchmarking, we also need to install `mpi4py`:
+The conda tool currently installs a replacement linker (`ld` program) which frequently breaks compilation on some systems.  We are going to remove it from our environment, so that we can successfully compile `mpi4py` in the next step:
 
 ```bash
+%>  rm -f $(dirname $(dirname $(which python)))/compiler_compat/ld
+```
+
+For meaningful benchmarking, we need to install `mpi4py`.
+
+> **NOTE**:  On HPC systems, you should install mpi4py with pip, *not* conda.  This
+> will allow compilation of mpi4py against the system compilers.
+
+```bash
+# On a laptop or workstation:
 %>  conda install mpi4py
+
+# On an HPC system with a vendor MPI installation:
+# (Substitute the name of your MPI C compiler)
+%>  MPICC=cc python3 -m pip install --no-cache-dir mpi4py
 ```
 
-It is always a good idea to run the TOAST unit tests with your new installation
-(substitute the appropriate MPI job launch command here):
+It is always a good idea to run the TOAST unit tests with your new installation:
 
 ```bash
-%>  mpirun -np 2 python3 -c 'import toast.tests; toast.tests.run()'
+# Example:  generic Linux:
+%>  export OMP_NUM_THREADS=1
+%>  mpirun -np 4 python3 -c 'import toast.tests; toast.tests.run()'
+
+# Example:  on cori.nersc.gov with slurm:
+%>  export OMP_NUM_THREADS=4
+%>  srun -N 1 -n 4 -C haswell -t 00:30:00 python3 -c 'import toast.tests; toast.tests.run()'
 ```
 
-### Manual Installation
+### Installing from Source
 
 Before trying to build TOAST from source for running these benchmarks, you should first
 make sure that you have installed all the necessary dependencies:
@@ -259,6 +321,9 @@ make sure that you have installed all the necessary dependencies:
 * Python3 (>= 3.6)
 * Python packages:  numpy, scipy, astropy, healpy, h5py, ephem
 * MPI and mpi4py (for effective parallelism)
+
+See the next section for how to use some of the scripts included in this repository to
+install all these dependencies.
 
 > **WARNING**:  TOAST has some compiled dependencies (LAPACK) which are
 > also used from Python (numpy / scipy uses LAPACK).  Your

@@ -1,8 +1,20 @@
 # This is a config file for the "cmbenv" scripts:
 #   https://github.com/hpc4cmb/cmbenv
-#
+
 # OS type (linux OR osx)
 OSTYPE = linux
+
+# Specify the template to use
+TEMPLATE = linux
+
+# Python version to use
+PYVERSION = auto
+
+# Packages to install with pip
+PIP_PKGS = future nose Cython numpy scipy matplotlib pyyaml astropy six psutil ephem memory_profiler healpy python-dateutil toml
+
+# Packages to install with conda
+CONDA_PKGS =
 
 # Serial compilers
 #==============================
@@ -98,11 +110,6 @@ CROSS =
 
 # Parallel builds
 MAKEJ = 2
-
-# Python version to use.  If you are using a default python3, put the version
-# here.  Otherwise, this version will be used to create a virtualenv or to
-# install a specific conda python version.
-PYVERSION = 3.7
 
 # For BLAS/LAPACK, we use openblas installed via cmbenv.  If you are linking to a
 # particular vendor package, put the linking options here.
