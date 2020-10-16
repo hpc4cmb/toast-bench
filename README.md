@@ -125,13 +125,16 @@ cases.
 ### Metrics
 
 At the end of the job a "Science Metric" is reported.  This is currently based on the
-total number of data samples processed and the node-seconds that were used.  There is an
-additional scale factor applied to reward the processing of larger data volumes, since
-this enables more detailed treatment of correlations in the data.  The metric is
-computed as:
+number of detectors, total number of data samples processed and the node-seconds that
+were used.  The different exponents in the metric attempt to weight different aspects of
+the job in an appropriate way.  For example, often it is critical to process a group of
+hundreds to several thousands of detectors together in a single job.  The more observing
+time we can process in a single job also leads to better quality results.  The metric is
+currently computed as:
 
 ```
-Metric = (1.0e-6 * Total samples)^(Factor) / (Run seconds * Number of nodes)
+Metric = (constant prefactor) x (Number of detectors)^2 x (1.0e-3 * Total samples)^1.2
+            / (Run seconds * Number of nodes)
 ```
 
 Where the run time only includes the actual science calculations and not the
