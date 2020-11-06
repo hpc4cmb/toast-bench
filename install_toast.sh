@@ -1,87 +1,71 @@
 #!/bin/bash
 #
-# This script installs TOAST using the cmbenv dependency stack
+# This script installs TOAST using the previously-built dependencies
 #
 # See the README for more details.
 #
 
-# Verify that we have the cmbenv stack loaded
+# The install PREFIX you used for dependencies.  This will install
+# TOAST to the same location.
+PREFIX="$(pwd)/toast_stack"
 
-if [ "x${CMBENV_ROOT}" = "x" ]; then
-    echo "You should load the cmbenv stack before running this script"
-    exit 1
-fi
+# The version of TOAST to install
+VERSION=2.3.10
+# VERSION=master
 
-usage () {
-    echo "usage:  $0 [tag or git hash]"
-    exit 1
-}
+# Compiler options (should match what you used for dependencies)
+CC="gcc"
+CXX="g++"
+CFLAGS="-O3 -fPIC -pthread"
+CXXFLAGS="-O3 -fPIC -pthread -std=c++11"
+OPENMP_CXXFLAGS="-fopenmp"
 
-# TOAST version to install
-version=$1
-if [ "x${version}" = "x" ]; then
-    version="master"
-fi
+# Dependencies.  Set these to either locations in $PREFIX (if you compiled
+# dependencies there) or to the external location where the package is located.
 
-# Directory containing this script
-pushd $(dirname $0) > /dev/null
-scriptdir=$(pwd)
-popd > /dev/null
+BLAS="${PREFIX}/lib/libopenblas.so"
+LAPACK="${PREFIX}/lib/libopenblas.so"
+# BLAS="${MKLROOT}/lib/intel64/libmkl_rt.so"
+# LAPACK="${MKLROOT}/lib/intel64/libmkl_rt.so"
+FFTW_ROOT="${PREFIX}"
+AATM_ROOT="${PREFIX}"
+SUITESPARSE_ROOT="${PREFIX}"
 
-# Runtime starting point
-topdir=$(pwd)
 
 # Clone TOAST and checkout desired version
 if [ -d toast ]; then
     # We already have a clone of toast, just update
-    cd toast
+    pushd toast >/dev/null 2>&1
     git checkout master
     git fetch
     git rebase origin/master
 else
     git clone https://github.com/hpc4cmb/toast.git
-    cd toast
+    pushd toast >/dev/null 2>&1
 fi
-git checkout -B bench ${version}
+git checkout -B bench ${VERSION}
 
-# Parse the config file parameters
+rm -rf build
+mkdir build
+pushd build >/dev/null 2>&1
 
-confsub="-e 's#@TOAST_VERSION@#${version}#g'"
+cmake \
+    -DCMAKE_C_COMPILER="${CC}" \
+    -DCMAKE_CXX_COMPILER="${CXX}" \
+    -DCMAKE_C_FLAGS="${CFLAGS}" \
+    -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
+    -DPYTHON_EXECUTABLE:FILEPATH=$(which python3) \
+    -DBLAS_LIBRARIES="${BLAS}" \
+    -DLAPACK_LIBRARIES="${LAPACK}" \
+    -DFFTW_ROOT="${FFTW_ROOT}" \
+    -DAATM_ROOT="${AATM_ROOT}" \
+    -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
+    -DSUITESPARSE_INCLUDE_DIR_HINTS="${SUITESPARSE_ROOT}/include" \
+    -DSUITESPARSE_LIBRARY_DIR_HINTS="${SUITESPARSE_ROOT}/lib" \
+    -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
+    ..
 
-while IFS='' read -r line || [[ -n "${line}" ]]; do
-    # is this line commented?
-    comment=$(echo "${line}" | cut -c 1)
-    if [ "${comment}" != "#" ]; then
-        check=$(echo "${line}" | sed -e "s#.*=.*#=#")
-        if [ "x${check}" = "x=" ]; then
-            # get the variable and its value
-            var=$(echo ${line} | sed -e "s#\([^=]*\)=.*#\1#" | awk '{print $1}')
-            val=$(echo ${line} | sed -e "s#[^=]*= *\(.*\)#\1#")
-            if [ "${var}" = "PYVERSION" ]; then
-                if [ "x${val}" = "xauto" ]; then
-                    val=$(python3 --version 2>&1 | awk '{print $2}' | sed -e "s#\(.*\)\.\(.*\)\..*#\1.\2#")
-                fi
-                pyversion="${val}"
-            fi
-            # add to list of substitutions
-            confsub="${confsub} -e 's#@${var}@#${val}#g'"
-        fi
-    fi
-done < "${scriptdir}/config-deps"
-
-# Create CMake config script
-conf="config.sh"
-rm -f "${conf}"
-while IFS='' read -r line || [[ -n "${line}" ]]; do
-    echo "${line}" | eval sed ${confsub} >> "${conf}"
-done < "${scriptdir}/toast_config_template.sh"
-chmod +x "${conf}"
-
-# Build and install
-mkdir -p build
-cd build
-../${conf}
 make -j 4 install
 
-# Back to the start
-cd "${topdir}"
+popd >/dev/null 2>&1
+popd >/dev/null 2>&1

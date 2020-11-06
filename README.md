@@ -313,12 +313,14 @@ It is always a good idea to run the TOAST unit tests with your new installation:
 ### Installing from Source
 
 Before trying to build TOAST from source for running these benchmarks, you should first
-make sure that you have installed all the necessary dependencies:
+make sure that you have installed all dependencies needed for the benchmark workflow.
+There are other optional dependencies for TOAST, but they are not required for the
+benchmark:
 
 * A C++11 compiler
 * A BLAS / LAPACK installation
 * [FFTW](http://fftw.org/) libraries
-* [CMake](https://cmake.org/) (>= 3.10)
+* [CMake](https://cmake.org/) (>= 3.12)
 * [SuiteSparse](http://faculty.cse.tamu.edu/davis/suitesparse.html) (for atmosphere simulations)
 * [libaatm](https://github.com/hpc4cmb/libaatm) (for atmosphere simulations)
 * Python3 (>= 3.6)
@@ -342,47 +344,6 @@ Intel compiler and MKL | numpy with MKL | Broken, **UNLESS** both MKLs are compa
 GCC and system OpenBLAS | numpy with MKL | **Works**: different libraries are dl-opened by TOAST and numpy.
 Intel compiler and MKL | numpy with OpenBLAS | **Works**: different libraries are dl-opened by TOAST and numpy.
 
-#### Dependencies:  Installing with `cmbenv`
-
-The [cmbenv](https://github.com/hpc4cmb/cmbenv) package is a set of scripts to build
-from source a variety of packages used in Cosmic Microwave Background (CMB) data
-analysis.  cmbenv can install a Python3 conda environment or it can use the default
-Python3 on the system to create a virtualenv for installing this software.
-
-The top-level `toast-bench` directory includes a script, `install_dependencies.sh` which
-will download the cmbenv package and use it to compile all of the TOAST dependencies.
-This build process can be configured with the `config-deps` file, which contains
-variables for setting compilers and other system values, and for overriding things like
-a vendor BLAS / LAPACK install.  The `config-deps.pkgs` file contains details about
-which packages should be built by cmbenv.  This defaults to creating a python3
-virtualenv and compiling all dependencies (including MPICH).  You should edit the
-`config-deps` and `config-deps.pkgs` files to match your test system.
-
-If you already have some dependencies installed and you are absolutely sure that
-everything is ABI compatible, then you can comment out those package lines in the
-`config-deps.pkgs` file.  After editing these files, install the dependencies to a
-top-level prefix with:
-
-```bash
-%>  ./install_dependencies.sh /path/to/prefix
-```
-
-Then load this software stack before installing TOAST with:
-
-```bash
-%>  source /path/to/prefix/cmbenv_init.sh
-%>  source cmbenv
-```
-
-Now install TOAST using the provided script.  This parses the same `config-deps` file
-you made to get options which are passed to CMake:
-
-```bash
-%>  ./install_toast.sh
-```
-
-After this, you can always load the cmbenv environment above and all tools (including
-TOAST) will be available.
 
 #### Dependencies:  Installing from Scratch
 
