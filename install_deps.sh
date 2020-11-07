@@ -10,7 +10,7 @@
 # Install prefix
 #==============================
 
-PREFIX="$(pwd)/toast_deps"
+PREFIX="$(pwd)/toast_stack"
 
 # Serial compilers
 #==============================
@@ -52,6 +52,29 @@ LDFLAGS="-lpthread -fopenmp"
 
 # Parallel builds
 MAKEJ=2
+
+
+# Environment:  put the install prefix into our environment while
+# running this script.
+
+mkdir -p "${PREFIX}/bin"
+mkdir -p "${PREFIX}/include"
+mkdir -p "${PREFIX}/lib"
+if [ ! -e "${PREFIX}/lib64" ]; then
+    ln -s "${PREFIX}/lib" "${PREFIX}/lib64"
+fi
+
+if [ "x${CPATH}" = "x" ]; then
+    export CPATH="${PREFIX}/include"
+else
+    export CPATH="${PREFIX}/include:${CPATH}"
+fi
+
+if [ "x${LD_LIBRARY_PATH}" = "x" ]; then
+    export LD_LIBRARY_PATH="${PREFIX}/lib"
+else
+    export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
+fi
 
 
 # PACKAGES
@@ -157,12 +180,12 @@ tar xzf ${openblas_pkg} \
 
 # If you commented out the above installation of OpenBLAS, set these lines to the
 # link command for BLAS and LAPACK for use by future dependencies below.
-BLAS="-lopenblas -lm ${LDFLAGS}"
-LAPACK=
+BLAS="-L${PREFIX}/lib -lopenblas -lm ${LDFLAGS}"
+LAPACK="-L${PREFIX}/lib -lopenblas -lm ${LDFLAGS}"
 
 # Example:  Use MKL instead (and comment out the install of OpenBLAS above)
-# BLAS="-l${MKLROOT}/lib/intel64/libmkl_rt.so -lm ${LDFLAGS}"
-# LAPACK=
+# BLAS="-L${MKLROOT}/lib/intel64 -lmkl_rt -lm ${LDFLAGS}"
+# LAPACK="-L${MKLROOT}/lib/intel64 -lmkl_rt -lm ${LDFLAGS}"
 
 # FFTW
 #---------------------
@@ -245,7 +268,56 @@ tar xzf ${ssparse_pkg} \
     && make library JOBS=${MAKEJ} \
     CC="${CC}" CXX="${CXX}" \
     CFLAGS="${CFLAGS}" CXXFLAGS="${CXXFLAGS}" AUTOCC=no \
-    GPU_CONFIG="" CFOPENMP="${OPENMP_CXXFLAGS}" BLAS="${BLAS}" \
+    GPU_CONFIG="" CFOPENMP="${OPENMP_CXXFLAGS}" \
+    LAPACK="${LAPACK}" BLAS="${BLAS}" \
     && cp -a ./include/* "${PREFIX}/include/" \
-    && find . -name "*.so" -exec cp -a '{}' "${PREFIX}/lib/" \; \
+    && cp -a ./lib/* "${PREFIX}/lib/" \
+    && find . -name "*.a" -exec cp -a '{}' "${PREFIX}/lib/" \; \
     && popd >/dev/null 2>&1
+
+# Now print out some reminder information about loading these tools
+
+echo "
+TOAST dependencies have been installed to:
+
+${PREFIX}
+
+You need to load this location into your environment before 
+installing TOAST.  For example, here are a couple of bash 
+functions that do this in a robust way:
+
+# Put these in your ~/.bashrc or similar.
+
+prepend_env () {
+    # This function is needed since trailing colons
+    # on some environment variables can cause major
+    # problems...
+    local envname=\$1
+    local envval=\$2
+    if [ \"x\${!envname}\" = \"x\" ]; then
+        export \${envname}=\"\${envval}\"
+    else
+        export \${envname}=\"\${envval}\":\${!envname}
+    fi
+}
+
+load_toast () {
+    # Put any environment setup here...
+    # module load python
+    #
+    # Location of the software stack
+    prefix=${PREFIX}
+    # Python major/minor version for site-packages
+    pysite=\$(python3 --version 2>&1 | sed -e \"s#Python \(.*\)\.\(.*\)\..*#\1.\2#\")
+    # Add software stack to the environment
+    prepend_env \"PATH\" \"\${prefix}/bin\"
+    prepend_env \"CPATH\" \"\${prefix}/include\"
+    prepend_env \"LD_LIBRARY_PATH\" \"\${prefix}/lib\"
+    prepend_env \"PYTHONPATH\" \"\${prefix}/lib/python\${pysite}/site-packages\"
+}
+
+Then do:
+
+%> load_toast
+
+"
