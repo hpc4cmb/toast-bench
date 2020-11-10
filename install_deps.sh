@@ -283,24 +283,18 @@ tar xzf ${ssparse_pkg} \
     && find . -name "*.a" -exec cp -a '{}' "${PREFIX}/lib/" \; \
     && popd >/dev/null 2>&1
 
-
 # Install some python packages to ensure we have them and that
 # they are recent.
 
 python3 -m pip install --prefix "${PREFIX}" astropy healpy ephem
 
-# Now print out some reminder information about loading these tools
+# Make a shell snippet to load the tools
 
 echo "
-TOAST dependencies have been installed to:
-
-${PREFIX}
-
-You need to load this location into your environment before
-installing TOAST.  For example, here are a couple of bash
-functions that do this in a robust way:
-
-# Put these in your ~/.bashrc or similar.
+# Load this software stack into your environment by sourcing this file:
+#
+#   %> . init.sh
+#
 
 prepend_env () {
     # This function is needed since trailing colons
@@ -316,9 +310,6 @@ prepend_env () {
 }
 
 load_toast () {
-    # Put any environment setup here...
-    # module load python
-    #
     # Location of the software stack
     prefix=${PREFIX}
     # Python major/minor version for site-packages
@@ -329,9 +320,19 @@ load_toast () {
     prepend_env \"LD_LIBRARY_PATH\" \"\${prefix}/lib\"
     prepend_env \"PYTHONPATH\" \"\${prefix}/lib/python\${pysite}/site-packages\"
 }
+" > "${PREFIX}/init.sh"
 
-Then do:
+# Now print out some reminder information about loading these tools
 
-%> load_toast
+echo "
+TOAST dependencies have been installed to:
+
+${PREFIX}
+
+You need to load this location into your environment before
+installing TOAST.  You can do this by sourcing the generated
+shell file:
+
+%>  . ${PREFIX}/init.sh
 
 "
