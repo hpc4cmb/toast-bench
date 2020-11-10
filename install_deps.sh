@@ -57,6 +57,8 @@ MAKEJ=4
 # Environment:  put the install prefix into our environment while
 # running this script.
 
+pysite=$(python3 --version 2>&1 | sed -e "s#Python \(.*\)\.\(.*\)\..*#\1.\2#")
+
 mkdir -p "${PREFIX}/bin"
 mkdir -p "${PREFIX}/include"
 mkdir -p "${PREFIX}/lib"
@@ -74,6 +76,12 @@ if [ "x${LD_LIBRARY_PATH}" = "x" ]; then
     export LD_LIBRARY_PATH="${PREFIX}/lib"
 else
     export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
+fi
+
+if [ "x${PYTHONPATH}" = "x" ]; then
+    export PYTHONPATH="${PREFIX}/lib"
+else
+    export PYTHONPATH="${PREFIX}/lib/python${pysite}/site-packages:${PYTHONPATH}"
 fi
 
 
@@ -275,6 +283,12 @@ tar xzf ${ssparse_pkg} \
     && find . -name "*.a" -exec cp -a '{}' "${PREFIX}/lib/" \; \
     && popd >/dev/null 2>&1
 
+
+# Install some python packages to ensure we have them and that
+# they are recent.
+
+python3 -m pip install --prefix "${PREFIX}" astropy healpy ephem
+
 # Now print out some reminder information about loading these tools
 
 echo "
@@ -282,8 +296,8 @@ TOAST dependencies have been installed to:
 
 ${PREFIX}
 
-You need to load this location into your environment before 
-installing TOAST.  For example, here are a couple of bash 
+You need to load this location into your environment before
+installing TOAST.  For example, here are a couple of bash
 functions that do this in a robust way:
 
 # Put these in your ~/.bashrc or similar.

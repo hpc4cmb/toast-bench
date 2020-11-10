@@ -44,6 +44,8 @@ MAKEJ=8
 # Environment:  put the install prefix into our environment while
 # running this script.
 
+pysite=$(python3 --version 2>&1 | sed -e "s#Python \(.*\)\.\(.*\)\..*#\1.\2#")
+
 mkdir -p "${PREFIX}/bin"
 mkdir -p "${PREFIX}/include"
 mkdir -p "${PREFIX}/lib"
@@ -61,6 +63,12 @@ if [ "x${LD_LIBRARY_PATH}" = "x" ]; then
     export LD_LIBRARY_PATH="${PREFIX}/lib"
 else
     export LD_LIBRARY_PATH="${PREFIX}/lib:${LD_LIBRARY_PATH}"
+fi
+
+if [ "x${PYTHONPATH}" = "x" ]; then
+    export PYTHONPATH="${PREFIX}/lib"
+else
+    export PYTHONPATH="${PREFIX}/lib/python${pysite}/site-packages:${PYTHONPATH}"
 fi
 
 
@@ -137,8 +145,8 @@ TOAST dependencies have been installed to:
 
 ${PREFIX}
 
-You need to load this location into your environment before 
-installing TOAST.  For example, here are a couple of bash 
+You need to load this location into your environment before
+installing TOAST.  For example, here are a couple of bash
 functions that do this in a robust way:
 
 # Put these in your ~/.bashrc or similar.
