@@ -1,5 +1,12 @@
 #!/bin/bash
 #
+# Example for installation on cori.nersc.gov with gcc.  This assumes that before running
+# you do:
+#
+# module swap PrgEnv-intel PrgEnv-gnu
+# module load python
+# module load cmake
+#
 # This script installs some compiled dependencies needed by TOAST.  You should edit
 # the values in this script to match your system and what dependencies you would like
 # to build from scratch.
@@ -20,20 +27,9 @@ CC="gcc"
 CXX="g++"
 FC="gfortran"
 
-# Example for the Intel compilers:
-# CC="${INTEL_PATH}/linux/bin/intel64/icc"
-# CXX="${INTEL_PATH}/linux/bin/intel64/icpc"
-# FC="${INTEL_PATH}/linux/bin/intel64/ifort"
-
-# Example for OSX with clang (fortran disabled):
-# CC="clang"
-# CXX="clang++"
-# FC=
-
 # Compile flags
 #==============================
 
-# Example for GNU compilers
 CFLAGS="-O3 -fPIC -pthread"
 CXXFLAGS="-O3 -fPIC -pthread -std=c++11"
 FCFLAGS="-O3 -fPIC -pthread"
@@ -41,17 +37,8 @@ OPENMP_CFLAGS="-fopenmp"
 OPENMP_CXXFLAGS="-fopenmp"
 LDFLAGS="-lpthread -fopenmp"
 
-# Example for Intel compilers, building "fat" binaries that have object code for both
-# ivybridge and newer processors as well as KNL with AVX512.
-# CFLAGS="-O3 -g -fPIC -xcore-avx2 -axmic-avx512 -pthread"
-# CXXFLAGS="-O3 -g -fPIC -xcore-avx2 -axmic-avx512 -pthread -std=c++11"
-# FCFLAGS="-O3 -g -fPIC -xcore-avx2 -axmic-avx512 -fexceptions -pthread -heap-arrays 16"
-# OPENMP_CFLAGS="-qopenmp"
-# OPENMP_CXXFLAGS="-qopenmp"
-# LDFLAGS="-lpthread -liomp5"
-
 # Parallel builds
-MAKEJ=4
+MAKEJ=8
 
 
 # Environment:  put the install prefix into our environment while
@@ -80,78 +67,8 @@ fi
 # PACKAGES
 #==============================
 
-# For each of the packages below, you can either tweak the build command or comment out
-# the lines completely if you are using some external package.
-
-# GMP / MPFR
-#---------------------
-
-# Most Linux systems already have these development libraries installed (needed by
-# SuiteSparse below).  They are commented out here by default.  If you are installing
-# on a truly bare-bones system or in a container you may need to install these from
-# scratch with your custom compilers.
-
-# # libgmp
-#
-# gmp_version=6.2.0
-# gmp_dir=gmp-${gmp_version}
-# gmp_pkg=${gmp_dir}.tar.xz
-#
-# echo "Fetching libgmp"
-#
-# if [ ! -e ${gmp_pkg} ]; then
-#     curl -SL https://ftp.gnu.org/gnu/gmp/${gmp_pkg} -o ${gmp_pkg}
-# fi
-#
-# echo "Building libgmp..."
-#
-# rm -rf ${gmp_dir}
-# tar xf ${gmp_pkg} \
-#     && pushd ${gmp_dir} >/dev/null 2>&1 \
-#     && CC="${CC}" CFLAGS="${CFLAGS}" \
-#     ./configure \
-#     --disable-static \
-#     --enable-shared \
-#     --with-pic \
-#     --prefix="${PREFIX}" \
-#     && make -j ${MAKEJ} \
-#     && make install \
-#     && popd >/dev/null 2>&1
-#
-# # libmpfr
-#
-# mpfr_version=4.1.0
-# mpfr_dir=mpfr-${mpfr_version}
-# mpfr_pkg=${mpfr_dir}.tar.xz
-#
-# echo "Fetching libmpfr"
-#
-# if [ ! -e ${mpfr_pkg} ]; then
-#     curl -SL https://www.mpfr.org/mpfr-current/${mpfr_pkg} -o ${mpfr_pkg}
-# fi
-#
-# echo "Building libmpfr..."
-#
-# rm -rf ${mpfr_dir}
-# tar xf ${mpfr_pkg} \
-#     && pushd ${mpfr_dir} >/dev/null 2>&1 \
-#     && CC="${CC}" CFLAGS="${CFLAGS}" \
-#     ./configure \
-#     --disable-static \
-#     --enable-shared \
-#     --with-pic \
-#     --with-gmp="${PREFIX}" \
-#     --prefix="${PREFIX}" \
-#     && make -j ${MAKEJ} \
-#     && make install \
-#     && popd >/dev/null 2>&1
-
 # BLAS / LAPACK
 #---------------------
-
-# Here we install OpenBLAS by default, but you might use any BLAS / LAPACK
-# implementation.  HOWEVER, see the note in the README about MKL conflicts between
-# versions used to build TOAST and those installed along with Numpy.
 
 # Install Openblas
 
@@ -178,14 +95,9 @@ tar xzf ${openblas_pkg} \
     && make NO_SHARED=0 PREFIX="${PREFIX}" install \
     && popd >/dev/null 2>&1
 
-# If you commented out the above installation of OpenBLAS, set these lines to the
-# link command for BLAS and LAPACK for use by future dependencies below.
+
 BLAS="-L${PREFIX}/lib -lopenblas -lm ${LDFLAGS}"
 LAPACK="-L${PREFIX}/lib -lopenblas -lm ${LDFLAGS}"
-
-# Example:  Use MKL instead (and comment out the install of OpenBLAS above)
-# BLAS="-L${MKLROOT}/lib/intel64 -lmkl_rt -lm ${LDFLAGS} -ldl"
-# LAPACK="-L${MKLROOT}/lib/intel64 -lmkl_rt -lm ${LDFLAGS} -ldl"
 
 # FFTW
 #---------------------
