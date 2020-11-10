@@ -13,24 +13,15 @@ PREFIX="$(pwd)/toast_stack"
 VERSION=master
 
 # Compiler options (should match what you used for dependencies)
-CC="gcc"
-CXX="g++"
+CC="icc"
+CXX="icpc"
 CFLAGS="-O3 -fPIC -pthread"
 CXXFLAGS="-O3 -fPIC -pthread -std=c++11"
-OPENMP_CXXFLAGS="-fopenmp"
+OPENMP_CXXFLAGS="-qopenmp"
 
-# Dependencies.  Set these to either locations in $PREFIX (if you compiled
-# dependencies there) or to the external location where the package is located.
-
-BLAS="${PREFIX}/lib/libopenblas.so"
-LAPACK="${PREFIX}/lib/libopenblas.so"
-FFTW_ROOT="${PREFIX}"
+# Dependencies.  We are getting BLAS/LAPACK/FFT support from MKL.
 AATM_ROOT="${PREFIX}"
 SUITESPARSE_ROOT="${PREFIX}"
-
-# Example if using MKL (and $MKLROOT is set in the environment)
-#AATM_ROOT="${PREFIX}"
-#SUITESPARSE_ROOT="${PREFIX}"
 
 # Clone TOAST and checkout desired version
 if [ -d toast ]; then
@@ -49,39 +40,18 @@ rm -rf build
 mkdir build
 pushd build >/dev/null 2>&1
 
-# Example using GNU compilers and disabling MKL (even if it
-# exists on the system) so that we use our own OpenBLAS / FFTW.
-
 cmake \
     -DCMAKE_C_COMPILER="${CC}" \
     -DCMAKE_CXX_COMPILER="${CXX}" \
     -DCMAKE_C_FLAGS="${CFLAGS}" \
     -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
     -DPYTHON_EXECUTABLE:FILEPATH=$(which python3) \
-    -DMKL_DISABLED=TRUE \
-    -DBLAS_LIBRARIES="${BLAS}" \
-    -DLAPACK_LIBRARIES="${LAPACK}" \
-    -DFFTW_ROOT="${FFTW_ROOT}" \
     -DAATM_ROOT="${AATM_ROOT}" \
     -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
     -DSUITESPARSE_INCLUDE_DIR_HINTS="${SUITESPARSE_ROOT}/include" \
     -DSUITESPARSE_LIBRARY_DIR_HINTS="${SUITESPARSE_ROOT}/lib" \
     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
     ..
-
-# Alternative:  for MKL, we don't need to specify BLAS/LAPACK/FFTW
-# cmake \
-#     -DCMAKE_C_COMPILER="${CC}" \
-#     -DCMAKE_CXX_COMPILER="${CXX}" \
-#     -DCMAKE_C_FLAGS="${CFLAGS}" \
-#     -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
-#     -DPYTHON_EXECUTABLE:FILEPATH=$(which python3) \
-#     -DAATM_ROOT="${AATM_ROOT}" \
-#     -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
-#     -DSUITESPARSE_INCLUDE_DIR_HINTS="${SUITESPARSE_ROOT}/include" \
-#     -DSUITESPARSE_LIBRARY_DIR_HINTS="${SUITESPARSE_ROOT}/lib" \
-#     -DCMAKE_INSTALL_PREFIX="${PREFIX}" \
-#     ..
 
 make -j 4 install
 
