@@ -49,12 +49,16 @@ rm -rf build
 mkdir build
 pushd build >/dev/null 2>&1
 
+# Example using GNU compilers and disabling MKL (even if it
+# exists on the system) so that we use our own OpenBLAS / FFTW.
+
 cmake \
     -DCMAKE_C_COMPILER="${CC}" \
     -DCMAKE_CXX_COMPILER="${CXX}" \
     -DCMAKE_C_FLAGS="${CFLAGS}" \
     -DCMAKE_CXX_FLAGS="${CXXFLAGS}" \
     -DPYTHON_EXECUTABLE:FILEPATH=$(which python3) \
+    -DMKL_DISABLED=TRUE \
     -DBLAS_LIBRARIES="${BLAS}" \
     -DLAPACK_LIBRARIES="${LAPACK}" \
     -DFFTW_ROOT="${FFTW_ROOT}" \
