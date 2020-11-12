@@ -148,7 +148,8 @@ python3 -m pip install --prefix "${PREFIX}" astropy healpy ephem
 echo "
 # Load this software stack into your environment by sourcing this file:
 #
-#   %> . init.sh
+#   %>  . init.sh
+#   %>  load_toast
 #
 
 prepend_env () {

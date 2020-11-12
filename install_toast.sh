@@ -10,7 +10,7 @@
 PREFIX="$(pwd)/toast_stack"
 
 # The version of TOAST to install
-VERSION=master
+VERSION=2.3.12
 
 # Compiler options (should match what you used for dependencies)
 CC="gcc"
